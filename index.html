@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prayer Times</title>
+
+<style>
+
+body{
+    font-family: Arial, sans-serif;
+    max-width:700px;
+    margin:auto;
+    padding:20px;
+    text-align:center;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    margin-top:20px;
+}
+
+td{
+    border:1px solid #ddd;
+    padding:10px;
+}
+
+h1{
+    color:#0a7c5a;
+}
+
+#countdown{
+    font-size:24px;
+    color:red;
+    margin-top:20px;
+}
+
+</style>
+
+</head>
+<body>
+
+<h1>Prayer Times</h1>
+
+<h3 id="location">Loading...</h3>
+
+<table>
+
+<tr>
+<td>Fajr</td>
+<td id="fajr"></td>
+</tr>
+
+<tr>
+<td>Dhuhr</td>
+<td id="dhuhr"></td>
+</tr>
+
+<tr>
+<td>Asr</td>
+<td id="asr"></td>
+</tr>
+
+<tr>
+<td>Maghrib</td>
+<td id="maghrib"></td>
+</tr>
+
+<tr>
+<td>Isha</td>
+<td id="isha"></td>
+</tr>
+
+</table>
+
+<h2 id="nextPrayer"></h2>
+
+<div id="countdown"></div>
+
+<script>
+
+let prayerTimesGlobal;
+
+navigator.geolocation.getCurrentPosition(
+async position => {
+
+const lat = position.coords.latitude;
+const lon = position.coords.longitude;
+
+document.getElementById("location").innerText =
+`Lat: ${lat.toFixed(4)} | Lon: ${lon.toFixed(4)}`;
+
+const url =
+`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=5`;
+
+const response = await fetch(url);
+
+const data = await response.json();
+
+const timings = data.data.timings;
+
+prayerTimesGlobal = timings;
+
+document.getElementById("fajr").innerText = timings.Fajr;
+document.getElementById("dhuhr").innerText = timings.Dhuhr;
+document.getElementById("asr").innerText = timings.Asr;
+document.getElementById("maghrib").innerText = timings.Maghrib;
+document.getElementById("isha").innerText = timings.Isha;
+
+startCountdown();
+
+},
+error => {
+alert("Please allow location access");
+}
+);
+
+function timeToDate(timeStr){
+
+const [h,m] = timeStr.split(":");
+
+const d = new Date();
+
+d.setHours(h);
+d.setMinutes(m);
+d.setSeconds(0);
+
+return d;
+}
+
+function startCountdown(){
+
+setInterval(()=>{
+
+if(!prayerTimesGlobal) return;
+
+const now = new Date();
+
+const prayers = [
+["Fajr",prayerTimesGlobal.Fajr],
+["Dhuhr",prayerTimesGlobal.Dhuhr],
+["Asr",prayerTimesGlobal.Asr],
+["Maghrib",prayerTimesGlobal.Maghrib],
+["Isha",prayerTimesGlobal.Isha]
+];
+
+let nextPrayerName = "Fajr";
+let nextPrayerTime = timeToDate(prayerTimesGlobal.Fajr);
+
+for(let p of prayers){
+
+let t = timeToDate(p[1]);
+
+if(t > now){
+
+nextPrayerName = p[0];
+nextPrayerTime = t;
+
+break;
+}
+
+}
+
+const diff = nextPrayerTime - now;
+
+const hrs = Math.floor(diff/1000/60/60);
+const mins = Math.floor(diff/1000/60)%60;
+const secs = Math.floor(diff/1000)%60;
+
+document.getElementById("nextPrayer").innerText =
+"Next Prayer: " + nextPrayerName;
+
+document.getElementById("countdown").innerText =
+`${hrs}h ${mins}m ${secs}s`;
+
+},1000);
+
+}
+
+</script>
+
+</body>
+</html>
